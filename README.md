@@ -1,7 +1,7 @@
 # Motivation
 
-*dsexec* is a cli helper to help you do a *d*ocker *s*ocket exec in a docker service.
-*dsexec* will lookup running docker swarm service tasks of the requested *service*, configure a DOCKER_HOST (checking known host & co) context to the remote docker-socket, and swawn you a docker exec of the requested *shell*.
+**dsexec** is a cli helper to help you do a **d**ocker **s**ocket exec in a docker service.
+**dsexec** will lookup running docker swarm service tasks of the requested **service**, configure a DOCKER_HOST (checking known host & co) context to the remote docker-socket, and spawn you a docker exec of the requested **shell**.
 
 
 
