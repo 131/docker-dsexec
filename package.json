@@ -1,6 +1,6 @@
 {
   "name": "dsexec",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,5 +19,4 @@
     "eslint-plugin-ivs": "^2.1.2",
     "mocha": "^3.1.2"
   }
-
 }
