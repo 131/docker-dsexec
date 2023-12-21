@@ -9,6 +9,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@131/docker-sdk": "^1.6.3"
+    "@131/docker-sdk": "^1.6.3",
+    "cnyks": "^3.0.6",
+    "nyks": "^6.10.0"
+  },
+  "devDependencies": {
+    "expect.js": "^0.3.1",
+    "nyc": "^15.0.1",
+    "eslint-plugin-ivs": "^2.1.2",
+    "mocha": "^3.1.2"
   }
+
 }
