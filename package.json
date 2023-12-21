@@ -1,12 +1,12 @@
 {
   "name": "dsexec",
   "version": "0.0.1",
-  "description": "",
+  "description": "**dsexec** is a cli helper to help you do a **d**ocker **s**ocket exec in a docker service.\r **dsexec** will lookup running docker swarm service tasks of the requested **service**, configure a DOCKER_HOST (checking known host & co) context to the remote docker-socket, and spawn you a docker exec of the requested **shell**.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "131 <131.code@leurent.email>",
   "license": "ISC",
   "dependencies": {
     "@131/docker-sdk": "^1.6.3",
@@ -18,5 +18,19 @@
     "nyc": "^15.0.1",
     "eslint-plugin-ivs": "^2.1.2",
     "mocha": "^3.1.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/131/docker-dsexec.git"
+  },
+  "keywords": [
+    "docker",
+    "service",
+    "exec",
+    "docker-socket"
+  ],
+  "bugs": {
+    "url": "https://github.com/131/docker-dsexec/issues"
+  },
+  "homepage": "https://github.com/131/docker-dsexec#readme"
 }
