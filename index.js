@@ -11,16 +11,34 @@ const DockerSDK = require('@131/docker-sdk');
 const wait  = require('nyks/child_process/wait');
 const drain = require('nyks/stream/drain');
 
+const DS_SSH_CONFIG = `
+Host ds-*
+  CheckHostIP no
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+`;
+
 class Dsexec {
 
   constructor() {
     this.docker_sdk = new DockerSDK();
     this.shouldCheck_knownhosts = false;
+    this.shouldConfigureSSH_config = true;
   }
 
 
+  async configure_SSH_config() {
+    const conf_file = "/etc/ssh/ssh_config.d/docker-socket.conf";
+    if(fs.existsSync(conf_file))
+      return;
+    console.error("Installing ds config in", conf_file);
+    fs.writeFileSync(conf_file, DS_SSH_CONFIG);
+  }
 
   async run(service_name, shell = '/bin/bash') {
+    if(this.shouldConfigureSSH_config)
+      await this.configure_SSH_config();
+
     if(!service_name.startsWith(this.docker_sdk.STACK_NAME))
       service_name = `${this.docker_sdk.STACK_NAME}_${service_name}`;
     console.info("Looking up for '%s' service tasks", service_name);

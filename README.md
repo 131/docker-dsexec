@@ -15,17 +15,6 @@ dsexec [service_name] [shell=/bin/bash]
 # make sure you have a docker-socket service available and deployed to all nodes.
 ```
 
-# Configuring ssh_config
-```
-cat <<EOS > /etc/ssh/ssh_config.d/docker-socket.conf
-Host ds-*
-  CheckHostIP no
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
-EOS
-
-```
-
 
 
 # Credits
