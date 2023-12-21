@@ -15,6 +15,7 @@ class Dsexec {
 
   constructor() {
     this.docker_sdk = new DockerSDK();
+    this.shouldCheck_knownhosts = false;
   }
 
 
@@ -40,7 +41,9 @@ class Dsexec {
       throw `Cannot exec in non running task`;
 
     let host = `ds-${NodeID}`;
-    await this.check_knownhosts(host);
+
+    if(this.shouldCheck_knownhosts)
+      await this.check_knownhosts(host);
 
     let DOCKER_HOST = "ssh://" + host;
 
