@@ -10,6 +10,7 @@ const DockerSDK = require('@131/docker-sdk');
 
 const wait  = require('nyks/child_process/wait');
 const drain = require('nyks/stream/drain');
+const formatArg = require('nyks/process/formatArg');
 
 const DS_SSH_CONFIG = `
 Host ds-*
@@ -35,7 +36,7 @@ class Dsexec {
     fs.writeFileSync(conf_file, DS_SSH_CONFIG);
   }
 
-  async run(service_name, shell = '/bin/bash') {
+  async run(service_name, args = ['/bin/bash']) {
     if(this.shouldConfigureSSH_config)
       await this.configure_SSH_config();
 
@@ -65,10 +66,10 @@ class Dsexec {
 
     let DOCKER_HOST = "ssh://" + host;
 
-    let args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID.substr(0, 12), shell];
-    let opts = {stdio : 'inherit'};
-    console.log("Entering", ["docker", ...args].join(' '));
-    let child = spawn("docker", args, opts);
+    let exec_args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID.substr(0, 12), ...args];
+    let exec_opts = {stdio : 'inherit'};
+    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    let child = spawn("docker", exec_args, exec_opts);
     await wait(child).catch(Function.prototype);
   }
 
@@ -96,9 +97,9 @@ class Dsexec {
     return String(host_key);
   }
 
-  static async exec(service_name, shell = '/bin/bash') {
+  static async exec(service_name, shell = '/bin/bash', args = []) {
     let i = new Dsexec();
-    await i.run(service_name, shell);
+    await i.run(service_name, [shell, ...args]);
   }
 }
 

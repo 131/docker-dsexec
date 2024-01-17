@@ -1,6 +1,7 @@
 #!/usr/bin/node
 "use strict";
-const [service_name, shell] = process.argv.slice(2);
+
+const [service_name, shell = '/bin/bash', ...args]  = process.argv.slice(2);
 
 const Dsexec = require('..');
-Dsexec.exec(service_name, shell);
+Dsexec.exec(service_name, shell, args);
