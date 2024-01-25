@@ -40,10 +40,9 @@ class Dsexec {
     if(this.shouldConfigureSSH_config)
       await this.configure_SSH_config();
 
-    if(!service_name.startsWith(this.docker_sdk.STACK_NAME))
-      service_name = `${this.docker_sdk.STACK_NAME}_${service_name}`;
     console.info("Looking up for '%s' service tasks", service_name);
-    let services = await this.docker_sdk.services_list({name : new RegExp(service_name)});
+    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(service_name)});
+
     if(!services.length)
       throw `Cannot lookup service`;
 
