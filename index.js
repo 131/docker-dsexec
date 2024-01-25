@@ -43,7 +43,7 @@ class Dsexec {
     if(!service_name.startsWith(this.docker_sdk.STACK_NAME))
       service_name = `${this.docker_sdk.STACK_NAME}_${service_name}`;
     console.info("Looking up for '%s' service tasks", service_name);
-    let services = await this.docker_sdk.services_list({name : service_name});
+    let services = await this.docker_sdk.services_list({name : new RegExp(service_name)});
     if(!services.length)
       throw `Cannot lookup service`;
 
