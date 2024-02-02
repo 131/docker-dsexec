@@ -21,10 +21,11 @@ Host ds-*
 
 class Dsexec {
 
-  constructor() {
+  constructor(service_name) {
     this.docker_sdk = new DockerSDK();
     this.shouldCheck_knownhosts = false;
     this.shouldConfigureSSH_config = true;
+    this.service_name = service_name;
   }
 
 
@@ -36,12 +37,13 @@ class Dsexec {
     fs.writeFileSync(conf_file, DS_SSH_CONFIG);
   }
 
-  async run(service_name, args = ['/bin/bash']) {
+
+  async _lookup() {
     if(this.shouldConfigureSSH_config)
       await this.configure_SSH_config();
 
-    console.info("Looking up for '%s' service tasks", service_name);
-    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(service_name)});
+    console.info("Looking up for '%s' service tasks", this.service_name);
+    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(this.service_name)});
 
     if(!services.length)
       throw `Cannot lookup service`;
@@ -67,8 +69,26 @@ class Dsexec {
       await this.check_knownhosts(host);
 
     let DOCKER_HOST = "ssh://" + host;
+    return {DOCKER_HOST, ContainerID : ContainerID.substr(0, 12)};
+  }
 
-    let exec_args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID.substr(0, 12), ...args];
+  async netshoot(shell = '/bin/bash', ...args) {
+
+    let {DOCKER_HOST, ContainerID} = await this._lookup();
+    let exec_args = ["-H", DOCKER_HOST, "run", "-it", "--rm", "--net", `container:${ContainerID}`, 'nicolaka/netshoot', shell, ...args];
+    let exec_opts = {stdio : 'inherit'};
+
+    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    let child = spawn("docker", exec_args, exec_opts);
+    await wait(child).catch(Function.prototype);
+  }
+
+
+  async exec(shell = '/bin/bash', ...args) {
+
+    let {DOCKER_HOST, ContainerID} = await this._lookup();
+
+    let exec_args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID, shell, ...args];
     let exec_opts = {stdio : 'inherit'};
     console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
@@ -99,10 +119,6 @@ class Dsexec {
     return String(host_key);
   }
 
-  static async exec(service_name, shell = '/bin/bash', args = []) {
-    let i = new Dsexec();
-    await i.run(service_name, [shell, ...args]);
-  }
 }
 
 
