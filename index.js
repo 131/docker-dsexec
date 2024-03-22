@@ -64,7 +64,7 @@ class Dsexec {
     if(State != "running")
       throw `Cannot exec in non running task`;
 
-    const [ {Description : {Platform : {OS}} , Status : {Addr} } ] = await this.docker_sdk.nodes_list({id: NodeID});
+    const [{Description : {Platform : {OS}}, Status : {Addr} }] = await this.docker_sdk.nodes_list({id : NodeID});
 
     const isWin = OS == 'windows';
 
