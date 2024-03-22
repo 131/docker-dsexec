@@ -48,7 +48,7 @@ class Dsexec {
     if(!services.length)
       throw `Cannot lookup service`;
 
-    let {ID, Spec : {Name}} = services[0];
+    let {ID, Spec : {Name}}  = services[0];
 
     if(services.length > 1)
       console.log("Using first matching service", Name);
@@ -59,17 +59,22 @@ class Dsexec {
     if(!task)
       throw `No tasks available`;
 
+
     const {Status : {State, ContainerStatus : {ContainerID} }, NodeID} = task;
     if(State != "running")
       throw `Cannot exec in non running task`;
 
-    let host = `ds-${NodeID}`;
+    const [ {Description : {Platform : {OS}} , Status : {Addr} } ] = await this.docker_sdk.nodes_list({id: NodeID});
 
-    if(this.shouldCheck_knownhosts)
+    const isWin = OS == 'windows';
+
+    let host = isWin ? `${Addr}:8022` : `ds-${NodeID}`;
+
+    if(this.shouldCheck_knownhosts || isWin)
       await this.check_knownhosts(host);
 
     let DOCKER_HOST = "ssh://" + host;
-    return {DOCKER_HOST, ContainerID : ContainerID.substr(0, 12)};
+    return {OS, DOCKER_HOST, ContainerID : ContainerID.substr(0, 12)};
   }
 
   async netshoot(shell = '/bin/bash', ...args) {
@@ -86,7 +91,9 @@ class Dsexec {
 
   async exec(shell = '/bin/bash', ...args) {
 
-    let {DOCKER_HOST, ContainerID} = await this._lookup();
+    let {OS, DOCKER_HOST, ContainerID} = await this._lookup();
+    if(OS == 'windows' && shell == '/bin/bash')
+      shell = 'cmd.exe';
 
     let exec_args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID, shell, ...args];
     let exec_opts = {stdio : 'inherit'};
@@ -95,25 +102,29 @@ class Dsexec {
     await wait(child).catch(Function.prototype);
   }
 
-  async check_knownhosts(addr) {
-    console.log("Checking for known host", addr);
+  async check_knownhosts(host) {
+    let [addr, port = 22] = host.split(':');
+
+    console.log("Checking for known host", addr, host);
     let knownhosts_file = path.join(os.homedir(), '.ssh', 'known_hosts');
     let body = "";
     if(fs.existsSync(knownhosts_file)) {
-      let search = new RegExp("^" + addr);
+      let search = new RegExp(`^(${host}|\\[${addr}\\]:${port})`, 'm');
       body = fs.readFileSync(knownhosts_file, 'utf-8');
+
       if(search.test(body))
         return;
     }
 
-    let hostkey = await this.lookup_hostkeys(addr);
+    let hostkey = await this.lookup_hostkeys(addr, port);
     body += hostkey;
     fs.writeFileSync(knownhosts_file, body);
     console.log("Wrote %s hostkey in %s", addr, knownhosts_file);
   }
 
-  async lookup_hostkeys(addr) {
-    let child = spawn("ssh-keyscan", [addr]);
+  async lookup_hostkeys(addr, port = 22) {
+
+    let child = spawn("ssh-keyscan", ["-p", port, addr]);
     let [, host_key] = await Promise.all([wait(child), drain(child.stdout)]);
 
     return String(host_key);
