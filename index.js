@@ -103,11 +103,12 @@ class Ds {
     } catch(err) {}
 
     try {
+      let ServiceName;
       ({DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target));
       console.info("Found service '%s' on node '%s'", ServiceName, Hostname);
     } catch(err) {}
 
-     if(DOCKER_HOST)
+    if(DOCKER_HOST)
       return passthru("bash", ["-l"], {env : {...process.env, DOCKER_HOST, DOCKER_HOSTNAME : Hostname}}).catch(() => true);
 
   }
