@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "dsexec": "./bin/dsexec"
+    "ds": "./bin/ds"
   },
   "author": "131 <131.code@leurent.email>",
   "license": "ISC",

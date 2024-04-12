@@ -19,13 +19,12 @@ Host ds-*
   UserKnownHostsFile /dev/null
 `;
 
-class Dsexec {
+class Ds {
 
-  constructor(service_name) {
+  constructor() {
     this.docker_sdk = new DockerSDK();
     this.shouldCheck_knownhosts = false;
     this.shouldConfigureSSH_config = true;
-    this.service_name = service_name;
   }
 
 
@@ -38,12 +37,12 @@ class Dsexec {
   }
 
 
-  async _lookup() {
+  async _lookup_service_host(service_name) {
     if(this.shouldConfigureSSH_config)
       await this.configure_SSH_config();
 
-    console.info("Looking up for '%s' service tasks", this.service_name);
-    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(this.service_name)});
+    console.info("Looking up for '%s' service tasks", service_name);
+    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(service_name)});
 
     if(!services.length)
       throw `Cannot lookup service`;
@@ -64,22 +63,39 @@ class Dsexec {
     if(State != "running")
       throw `Cannot exec in non running task`;
 
-    const [{Description : {Platform : {OS}}, Status : {Addr} }] = await this.docker_sdk.nodes_list({id : NodeID});
+
+    let node = await this._lookup_node({id : NodeID});
+    return {...node, ContainerID : ContainerID.substr(0, 12)};
+  }
+
+  async _lookup_node(filter) {
+    const [{Id : NodeID, Description : {Platform : {OS}}, Status : {Addr} }] = await this.docker_sdk.nodes_list(filter);
 
     const isWin = OS == 'windows';
-
     let host = isWin ? `${Addr}:8022` : `ds-${NodeID}`;
 
     if(this.shouldCheck_knownhosts || isWin)
       await this.check_knownhosts(host);
 
     let DOCKER_HOST = "ssh://" + host;
-    return {OS, DOCKER_HOST, ContainerID : ContainerID.substr(0, 12)};
+    return {OS, DOCKER_HOST};
   }
 
-  async netshoot(shell = '/bin/bash', ...args) {
+  async stats(node_name) {
 
-    let {DOCKER_HOST, ContainerID} = await this._lookup();
+    let {DOCKER_HOST} = await this._lookup_node({name : node_name});
+    let stats_args = ["-H", DOCKER_HOST, "stats"];
+    let stats_opts = {stdio : 'inherit'};
+
+    console.log("Entering", ["docker", ...stats_args.map(formatArg)].join(' '));
+    let child = spawn("docker", stats_args, stats_opts);
+    await wait(child).catch(Function.prototype);
+  }
+
+
+  async netshoot(service_name, shell = '/bin/bash', ...args) {
+
+    let {DOCKER_HOST, ContainerID} = await this._lookup_service_host(service_name);
     let exec_args = ["-H", DOCKER_HOST, "run", "-it", "--rm", "--net", `container:${ContainerID}`, 'nicolaka/netshoot', shell, ...args];
     let exec_opts = {stdio : 'inherit'};
 
@@ -89,9 +105,9 @@ class Dsexec {
   }
 
 
-  async exec(shell = '/bin/bash', ...args) {
+  async exec(service_name, shell = '/bin/bash', ...args) {
 
-    let {OS, DOCKER_HOST, ContainerID} = await this._lookup();
+    let {OS, DOCKER_HOST, ContainerID} = await this._lookup_service_host(service_name);
     if(OS == 'windows' && shell == '/bin/bash')
       shell = 'cmd.exe';
 
@@ -133,4 +149,4 @@ class Dsexec {
 }
 
 
-module.exports = Dsexec;
+module.exports = Ds;

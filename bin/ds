@@ -1,0 +1,28 @@
+#!/usr/bin/node
+"use strict";
+
+
+const argv = process.argv.slice(2);
+const Ds = require('..');
+
+const ds = new Ds();
+
+
+mode = argv.shift();
+
+if(mode == "exec") {
+  const [service_name, ...shellargs]  = argv;
+  ds.exec(service_name, ...shellargs);
+} else if(mode == "net") {
+  const [service_name, ...shellargs]  = argv;
+  ds.netshoot(service_name, ..shellargs);
+} else if(mode == "stats") {
+  const [node_name]  = argv;
+  let ds = new Ds();
+  ds.stats(node_name);
+} else {
+  console.error("Invalid mode", mode, "(use ds exec / ds net / ds stats)");
+  process.exit(1);
+}
+
+
