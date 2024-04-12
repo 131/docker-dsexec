@@ -39,8 +39,6 @@ class Ds {
 
 
   async _lookup_service(service_name, container_id = null) {
-    if(this.shouldConfigureSSH_config)
-      await this.configure_SSH_config();
 
     console.info("Looking up for '%s' service tasks", service_name);
     let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(service_name)});
@@ -74,6 +72,9 @@ class Ds {
 
 
   async _lookup_node(filter) {
+    if(this.shouldConfigureSSH_config)
+      await this.configure_SSH_config();
+
     const nodes =  await this.docker_sdk.nodes_list(filter);
     if(!nodes.length)
       throw `Unreachable node`;
