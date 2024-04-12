@@ -95,22 +95,21 @@ class Ds {
     if(!target)
       return;
 
-    let DOCKER_HOST, Hostname;
+    const activate = function(DOCKER_HOST, DOCKER_HOSTNAME) {
+      return passthru("bash", ["-l"], {env : {...process.env, DOCKER_HOST, DOCKER_HOSTNAME}}).catch(() => true);
+    };
 
     try {
-      ({DOCKER_HOST, Hostname} = await this._lookup_node({name : new RegExp(target)}));
+      let {DOCKER_HOST, Hostname} = await this._lookup_node({name : new RegExp(target)});
       console.info("Found node '%s'", Hostname);
+      return activate(DOCKER_HOST, Hostname);
     } catch(err) {}
 
     try {
-      let ServiceName;
-      ({DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target));
+      let {DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target);
       console.info("Found service '%s' on node '%s'", ServiceName, Hostname);
+      return activate(DOCKER_HOST, Hostname);
     } catch(err) {}
-
-    if(DOCKER_HOST)
-      return passthru("bash", ["-l"], {env : {...process.env, DOCKER_HOST, DOCKER_HOSTNAME : Hostname}}).catch(() => true);
-
   }
 
   async stats(node_name) {
