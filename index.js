@@ -55,7 +55,7 @@ class Ds {
     let tasks_list = await this.docker_sdk.service_tasks(ID, 'running');
 
     if(container_id)
-      tasks_list = tasks_list.filter( ({Status : {State, ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
+      tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
 
     const task = tasks_list.shift();
     if(!task)
@@ -68,7 +68,7 @@ class Ds {
 
 
     let node = await this._lookup_node({id : NodeID});
-    return {...node, ContainerID : ContainerID.substr(0, 12), ServiceName: Name};
+    return {...node, ContainerID : ContainerID.substr(0, 12), ServiceName : Name};
   }
 
 
@@ -91,20 +91,20 @@ class Ds {
 
 
   async _create_and_activate(Hostname, DOCKER_HOST) {
-   let list = {};
-   let lines =  await exec("docker", ["context", "ls", "--format", "json"]);
-   String(lines).split("\n").forEach((line) => {
-     if(!line)
-       return;
-     line = JSON.parse(line);
-     list[line.Name] = line;
-   });
+    let list = {};
+    let lines =  await exec("docker", ["context", "ls", "--format", "json"]);
+    String(lines).split("\n").forEach((line) => {
+      if(!line)
+        return;
+      line = JSON.parse(line);
+      list[line.Name] = line;
+    });
 
-   if(!list[Hostname]) {
-     await exec("docker", ["context", "create", Hostname, "--docker", `host=${DOCKER_HOST}`]);
-   }
-   console.log("Activating context for", Hostname);
-   return exec("docker", ["context", "use", Hostname]);
+    if(!list[Hostname])
+      await exec("docker", ["context", "create", Hostname, "--docker", `host=${DOCKER_HOST}`]);
+
+    console.log("Activating context for", Hostname);
+    return exec("docker", ["context", "use", Hostname]);
   }
 
   async activate(target = null) {
