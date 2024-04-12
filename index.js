@@ -37,7 +37,7 @@ class Ds {
   }
 
 
-  async _lookup_service_host(service_name) {
+  async _lookup_service(service_name, container_id = null) {
     if(this.shouldConfigureSSH_config)
       await this.configure_SSH_config();
 
@@ -52,7 +52,10 @@ class Ds {
     if(services.length > 1)
       console.log("Using first matching service", Name);
 
-    const tasks_list = await this.docker_sdk.service_tasks(ID, 'running');
+    let tasks_list = await this.docker_sdk.service_tasks(ID, 'running');
+
+    if(container_id)
+      tasks_list = tasks_list.filter( ({Status : {State, ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
 
     const task = tasks_list.shift();
     if(!task)
@@ -65,11 +68,16 @@ class Ds {
 
 
     let node = await this._lookup_node({id : NodeID});
-    return {...node, ContainerID : ContainerID.substr(0, 12)};
+    return {...node, ContainerID : ContainerID.substr(0, 12), ServiceName: Name};
   }
 
+
   async _lookup_node(filter) {
-    const [{Id : NodeID, Description : {Platform : {OS}}, Status : {Addr} }] = await this.docker_sdk.nodes_list(filter);
+    const nodes =  await this.docker_sdk.nodes_list(filter);
+    if(!nodes.length)
+      throw `Unreachable node`;
+
+    const [{ID : NodeID, Description : {Hostname, Platform : {OS}}, Status : {Addr} }] = nodes;
 
     const isWin = OS == 'windows';
     let host = isWin ? `${Addr}:8022` : `ds-${NodeID}`;
@@ -78,16 +86,55 @@ class Ds {
       await this.check_knownhosts(host);
 
     let DOCKER_HOST = "ssh://" + host;
-    return {OS, DOCKER_HOST};
+    return {OS, DOCKER_HOST, Hostname};
+  }
+
+
+  async _create_and_activate(Hostname, DOCKER_HOST) {
+   let list = {};
+   let lines =  await exec("docker", ["context", "ls", "--format", "json"]);
+   String(lines).split("\n").forEach((line) => {
+     if(!line)
+       return;
+     line = JSON.parse(line);
+     list[line.Name] = line;
+   });
+
+   if(!list[Hostname]) {
+     await exec("docker", ["context", "create", Hostname, "--docker", `host=${DOCKER_HOST}`]);
+   }
+   console.log("Activating context for", Hostname);
+   return exec("docker", ["context", "use", Hostname]);
+  }
+
+  async activate(target = null) {
+    if(!target)
+      return this._create_and_activate("default");
+
+    try {
+      let {DOCKER_HOST, Hostname} = await this._lookup_node({name : new RegExp(target)});
+      console.info("Found node '%s'", Hostname);
+      return this._create_and_activate(Hostname, DOCKER_HOST);
+    } catch(err) {}
+
+    try {
+      let {DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target);
+      console.info("Found service '%s' on node '%s'", ServiceName, Hostname);
+      return this._create_and_activate(Hostname, DOCKER_HOST);
+    } catch(err) {}
+
   }
 
   async stats(node_name) {
+    if(!node_name)
+      throw `Invalid node name`;
 
-    let {DOCKER_HOST} = await this._lookup_node({name : node_name});
+    let {DOCKER_HOST, Hostname} = await this._lookup_node({name : new RegExp(node_name)});
     let stats_args = ["-H", DOCKER_HOST, "stats"];
     let stats_opts = {stdio : 'inherit'};
 
-    console.log("Entering", ["docker", ...stats_args.map(formatArg)].join(' '));
+    console.log("Entering", Hostname);
+    console.log(["docker", ...stats_args.map(formatArg)].join(' '));
     let child = spawn("docker", stats_args, stats_opts);
     await wait(child).catch(Function.prototype);
   }
@@ -95,7 +142,7 @@ class Ds {
 
   async netshoot(service_name, shell = '/bin/bash', ...args) {
 
-    let {DOCKER_HOST, ContainerID} = await this._lookup_service_host(service_name);
+    let {DOCKER_HOST, ContainerID} = await this._lookup_service(service_name);
     let exec_args = ["-H", DOCKER_HOST, "run", "-it", "--rm", "--net", `container:${ContainerID}`, 'nicolaka/netshoot', shell, ...args];
     let exec_opts = {stdio : 'inherit'};
 
@@ -106,8 +153,10 @@ class Ds {
 
 
   async exec(service_name, shell = '/bin/bash', ...args) {
+    if(!service_name)
+      throw `Invalid service name`;
 
-    let {OS, DOCKER_HOST, ContainerID} = await this._lookup_service_host(service_name);
+    let {OS, DOCKER_HOST, ContainerID} = await this._lookup_service(service_name);
     if(OS == 'windows' && shell == '/bin/bash')
       shell = 'cmd.exe';
 
@@ -139,14 +188,16 @@ class Ds {
   }
 
   async lookup_hostkeys(addr, port = 22) {
-
-    let child = spawn("ssh-keyscan", ["-p", port, addr]);
-    let [, host_key] = await Promise.all([wait(child), drain(child.stdout)]);
-
+    let host_key = await exec("ssh-keyscan", ["-p", port, addr]);
     return String(host_key);
   }
 
 }
 
+const exec = async function(...args) {
+  let child = spawn(...args);
+  let [, body] = await Promise.all([wait(child), drain(child.stdout)]);
+  return body;
+};
 
 module.exports = Ds;
