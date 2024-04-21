@@ -41,7 +41,7 @@ class Ds {
   async _lookup_service(service_name, container_id = null) {
 
     console.info("Looking up for '%s' service tasks", service_name);
-    let services = await this.docker_sdk.services_list({namespace : this.docker_sdk.STACK_NAME, name : new RegExp(service_name)});
+    let services = await this.docker_sdk.services_list({name : new RegExp(service_name)});
 
     if(!services.length)
       throw `Cannot lookup service`;
