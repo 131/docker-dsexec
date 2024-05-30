@@ -155,6 +155,19 @@ class Ds {
     await wait(child).catch(Function.prototype);
   }
 
+  async scale(service_name, weight = 1) {
+    if(!service_name)
+      throw `Invalid service name`;
+
+    let {Name} = await this._lookup_service(service_name);
+
+    let exec_args = ["service", "scale", `${Name}=${weight}`];
+    let exec_opts = {stdio : 'inherit'};
+    console.log("Running", ["docker", ...exec_args.map(formatArg)].join(' '));
+
+    await passthru("docker", exec_args, exec_opts);
+  }
+
   async check_knownhosts(host) {
     let [addr, port = 22] = host.split(':');
 

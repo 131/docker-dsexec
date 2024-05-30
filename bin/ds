@@ -8,29 +8,32 @@ const Ds = require('..');
 const ds = new Ds();
 
 
-const mode = argv.shift();
+const cmd = argv.shift();
 
 
 const failure = function(err) {
   console.error("Failure :", err);
   process.exit();
 };
-if(mode == "exec") {
+if(cmd == "exec") {
   const [service_name, ...shellargs]  = argv;
   ds.exec(service_name, ...shellargs).catch(failure);
-} else if(mode == "net") {
+} else if(cmd == "scale") {
+  const [service_name, ...shellargs]  = argv;
+  ds.scale(service_name, ...shellargs).catch(failure);
+} else if(cmd == "net") {
   const [service_name, ...shellargs]  = argv;
   ds.netshoot(service_name, ...shellargs).catch(failure);
-} else if(mode == "stats") {
+} else if(cmd == "stats") {
   const [node_name]  = argv;
   let ds = new Ds();
   ds.stats(node_name).catch(failure);
-} else if(mode == "activate") {
+} else if(cmd == "activate") {
   const [node_name]  = argv;
   let ds = new Ds();
   ds.activate(node_name).catch(failure);
 } else {
-  console.error("Invalid mode", mode, "(use ds exec / ds net / ds stats / ds activate)");
+  console.error("Invalid command", cmd, "(use ds exec / ds net / ds stats / ds activate / ds scale)");
   process.exit(1);
 }
 
