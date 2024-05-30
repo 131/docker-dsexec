@@ -29,9 +29,9 @@ if(cmd == "exec") {
   let ds = new Ds();
   ds.stats(node_name).catch(failure);
 } else if(cmd == "activate") {
-  const [node_name]  = argv;
+  const [node_name, container_id]  = argv;
   let ds = new Ds();
-  ds.activate(node_name).catch(failure);
+  ds.activate(node_name, container_id).catch(failure);
 } else {
   console.error("Invalid command", cmd, "(use ds exec / ds net / ds stats / ds activate / ds scale)");
   process.exit(1);

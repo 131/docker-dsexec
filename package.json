@@ -13,7 +13,7 @@
   "author": "131 <131.code@leurent.email>",
   "license": "ISC",
   "dependencies": {
-    "@131/docker-sdk": "^1.9.1",
+    "@131/docker-sdk": "^1.10.0",
     "cnyks": "^3.1.0",
     "nyks": "^6.10.0"
   },

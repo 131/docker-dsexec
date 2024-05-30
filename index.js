@@ -38,9 +38,16 @@ class Ds {
   }
 
 
+  async _lookup_container(container_id) {
+    console.info("Looking up for '%s' container", container_id);
+    let tasks_list = await this.docker_sdk.tasks_list({state : 'running'});
+    console.info("Found '%d' tasks", tasks_list.length);
+    tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
+    return this._expose_task(tasks_list[0]);
+  }
+
   async _lookup_service(service_name, container_id = null) {
 
-    console.info("Looking up for '%s' service tasks", service_name);
     let services = await this.docker_sdk.services_list({name : new RegExp(service_name)});
 
     if(!services.length)
@@ -56,10 +63,13 @@ class Ds {
     if(container_id)
       tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
 
-    const task = tasks_list.shift();
-    if(!task)
-      throw `No tasks available`;
+    let task = await this._expose_task(tasks_list[0]);
+    return {ServiceName : Name, ...task};
+  }
 
+  async _expose_task(task) {
+    if(!task)
+      throw `No task to expose`;
 
     const {Status : {State, ContainerStatus : {ContainerID} }, NodeID} = task;
     if(State != "running")
@@ -67,7 +77,7 @@ class Ds {
 
 
     let node = await this._lookup_node({id : NodeID});
-    return {...node, ContainerID : ContainerID.substr(0, 12), ServiceName : Name};
+    return {...node, ContainerID : ContainerID.substr(0, 12)};
   }
 
 
@@ -92,7 +102,7 @@ class Ds {
   }
 
 
-  async activate(target) {
+  async activate(target, container_id = null) {
     if(!target)
       return;
 
@@ -107,7 +117,7 @@ class Ds {
     } catch(err) {}
 
     try {
-      let {DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target);
+      let {DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target, container_id);
       console.info("Found service '%s' on node '%s'", ServiceName, Hostname);
       return activate(DOCKER_HOST, Hostname);
     } catch(err) {}
@@ -144,7 +154,16 @@ class Ds {
     if(!service_name)
       throw `Invalid service name`;
 
-    let {OS, DOCKER_HOST, ContainerID} = await this._lookup_service(service_name);
+    const lookup = async (search) => {
+      // try initial lookup as service (faster)
+      try {
+        return await this._lookup_service(search);
+      } catch(err) {}
+
+      return this._lookup_container(search);
+    };
+
+    let {OS, DOCKER_HOST, ContainerID} = await lookup(service_name);
     if(OS == 'windows' && shell == '/bin/bash')
       shell = 'cmd.exe';
 
