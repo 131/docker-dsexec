@@ -156,12 +156,14 @@ class Ds {
   }
 
   async scale(service_name, weight = 1) {
+    ([service_name, weight = weight] = service_name.split("="));
+
     if(!service_name)
       throw `Invalid service name`;
 
-    let {Name} = await this._lookup_service(service_name);
+    let {ServiceName} = await this._lookup_service(service_name);
 
-    let exec_args = ["service", "scale", `${Name}=${weight}`];
+    let exec_args = ["service", "scale", `${ServiceName}=${weight}`];
     let exec_opts = {stdio : 'inherit'};
     console.log("Running", ["docker", ...exec_args.map(formatArg)].join(' '));
 
