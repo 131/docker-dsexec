@@ -20,7 +20,7 @@ Host ds-*
   UserKnownHostsFile /dev/null
 `;
 
-const DS_ENV = new RegExp(process.env.DS_ENV || 'GIT_');
+const DS_ENV = new RegExp(process.env.DS_ENV || 'GIT_|USER_LOGIN');
 
 class Ds {
 
@@ -151,6 +151,15 @@ class Ds {
     await wait(child).catch(Function.prototype);
   }
 
+
+  async stop(container_id) {
+    let { DOCKER_HOST, ContainerID} = this._lookup_container(container_id);
+    let exec_args = ["-H", DOCKER_HOST, "stop", ContainerID];
+    let exec_opts = {stdio : 'inherit'};
+    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    let child = spawn("docker", exec_args, exec_opts);
+    await wait(child).catch(Function.prototype);
+  }
 
   async exec(service_name, shell = '/bin/bash', ...args) {
     if(!service_name)
