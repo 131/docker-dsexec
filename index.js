@@ -153,7 +153,7 @@ class Ds {
 
 
   async stop(container_id) {
-    let { DOCKER_HOST, ContainerID} = this._lookup_container(container_id);
+    let { DOCKER_HOST, ContainerID} = await this._lookup_container(container_id);
     let exec_args = ["-H", DOCKER_HOST, "stop", ContainerID];
     let exec_opts = {stdio : 'inherit'};
     console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
