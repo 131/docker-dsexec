@@ -20,6 +20,8 @@ Host ds-*
   UserKnownHostsFile /dev/null
 `;
 
+const DS_ENV = new RegExp(process.env.DS_ENV || 'GIT_');
+
 class Ds {
 
   constructor() {
@@ -167,7 +169,9 @@ class Ds {
     if(OS == 'windows' && shell == '/bin/bash')
       shell = 'cmd.exe';
 
-    let exec_args = ["-H", DOCKER_HOST, "exec", "-it", ContainerID, shell, ...args];
+    let env = Object.keys(process.env).filter(k => DS_ENV.test(k)).reduce((acc, v) => (acc.push('-e', v), acc), []);
+    let exec_args = ["-H", DOCKER_HOST, "exec", ...env, "-it", ContainerID, shell, ...args];
+
     let exec_opts = {stdio : 'inherit'};
     console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
