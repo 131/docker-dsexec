@@ -177,9 +177,8 @@ class Ds {
     let {OS, DOCKER_HOST, ContainerID} = await lookup(service_name);
     if(OS == 'windows' && shell == '/bin/bash')
       shell = 'cmd.exe';
-
     let env = Object.keys(process.env).filter(k => DS_ENV.test(k)).reduce((acc, v) => (acc.push('-e', v), acc), []);
-    let exec_args = ["-H", DOCKER_HOST, "exec", ...env, "-it", ContainerID, shell, ...args];
+    let exec_args = ["-H", DOCKER_HOST, "exec", ...env, process.stdin.isTTY ? "-it" : "-i", ContainerID, shell, ...args];
 
     let exec_opts = {stdio : 'inherit'};
     console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
