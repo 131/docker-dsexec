@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/131/docker-dsexec.git"
+    "url": "git@github.com:131/docker-dsexec.git"
   },
   "keywords": [
     "docker",
