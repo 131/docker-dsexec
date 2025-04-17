@@ -91,15 +91,14 @@ class Ds {
     if(!nodes.length)
       throw `Unreachable node`;
 
-    const [{ID : NodeID, Description : {Hostname, Platform : {OS}}, Status : {Addr} }] = nodes;
-
+    const [{ID : NodeID, Spec, Status : {Addr}, Description : {Hostname, Platform : {OS}} }] = nodes;
     const isWin = OS == 'windows';
-    let host = isWin ? `${Addr}:8022` : `ds-${NodeID}`;
+    const {Labels : {'ds://addr' : addr = (isWin ? `${Addr}:8022` : `ds-${NodeID}`)}} = Spec;
 
     if(this.shouldCheck_knownhosts || isWin)
-      await this.check_knownhosts(host);
+      await this.check_knownhosts(addr);
 
-    let DOCKER_HOST = "ssh://" + host;
+    let DOCKER_HOST = "ssh://" + addr;
     return {OS, DOCKER_HOST, Hostname};
   }
 
