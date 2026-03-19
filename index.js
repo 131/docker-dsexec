@@ -13,6 +13,8 @@ const passthru = require('nyks/child_process/passthru');
 const drain = require('nyks/stream/drain');
 const formatArg = require('nyks/process/formatArg');
 
+
+
 const DS_SSH_CONFIG = `
 Host ds-*
   CheckHostIP no
@@ -41,9 +43,9 @@ class Ds {
 
 
   async _lookup_container(container_id) {
-    console.info("Looking up for '%s' container", container_id);
+    console.error("Looking up for '%s' container", container_id);
     let tasks_list = await this.docker_sdk.tasks_list({state : 'running'});
-    console.info("Found '%d' tasks", tasks_list.length);
+    console.error("Found '%d' tasks", tasks_list.length);
     tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
     return this._expose_task(tasks_list[0]);
   }
@@ -58,7 +60,7 @@ class Ds {
     let {ID, Spec : {Name}}  = services[0];
 
     if(services.length > 1)
-      console.log("Using first matching service", Name);
+      console.error("Using first matching service", Name);
 
     let tasks_list = await this.docker_sdk.service_tasks(ID, 'running');
 
@@ -113,13 +115,13 @@ class Ds {
 
     try {
       let {DOCKER_HOST, Hostname} = await this._lookup_node({name : new RegExp(target)});
-      console.info("Found node '%s'", Hostname);
+      console.error("Found node '%s'", Hostname);
       return activate(DOCKER_HOST, Hostname);
     } catch(err) {}
 
     try {
       let {DOCKER_HOST, Hostname, ServiceName} = await this._lookup_service(target, container_id);
-      console.info("Found service '%s' on node '%s'", ServiceName, Hostname);
+      console.error("Found service '%s' on node '%s'", ServiceName, Hostname);
       return activate(DOCKER_HOST, Hostname);
     } catch(err) {}
   }
@@ -132,8 +134,8 @@ class Ds {
     let stats_args = ["-H", DOCKER_HOST, "stats"];
     let stats_opts = {stdio : 'inherit'};
 
-    console.log("Entering", Hostname);
-    console.log(["docker", ...stats_args.map(formatArg)].join(' '));
+    console.error("Entering", Hostname);
+    console.error(["docker", ...stats_args.map(formatArg)].join(' '));
     let child = spawn("docker", stats_args, stats_opts);
     await wait(child).catch(Function.prototype);
   }
@@ -145,7 +147,7 @@ class Ds {
     let exec_args = ["-H", DOCKER_HOST, "run", "-it", "--rm", "--net", `container:${ContainerID}`, 'nicolaka/netshoot', shell, ...args];
     let exec_opts = {stdio : 'inherit'};
 
-    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    console.error("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
     await wait(child).catch(Function.prototype);
   }
@@ -155,7 +157,7 @@ class Ds {
     let { DOCKER_HOST, ContainerID} = await this._lookup_container(container_id);
     let exec_args = ["-H", DOCKER_HOST, "stop", ContainerID];
     let exec_opts = {stdio : 'inherit'};
-    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    console.error("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
     await wait(child).catch(Function.prototype);
   }
@@ -184,7 +186,7 @@ class Ds {
     let exec_args = ["-H", DOCKER_HOST, "exec", ...opts, ContainerID, shell, ...args];
 
     let exec_opts = {stdio : 'inherit'};
-    console.log("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
+    console.error("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
     await wait(child).catch(Function.prototype);
   }
@@ -199,7 +201,7 @@ class Ds {
 
     let exec_args = ["service", "scale", `${ServiceName}=${weight}`];
     let exec_opts = {stdio : 'inherit'};
-    console.log("Running", ["docker", ...exec_args.map(formatArg)].join(' '));
+    console.error("Running", ["docker", ...exec_args.map(formatArg)].join(' '));
 
     await passthru("docker", exec_args, exec_opts);
   }
@@ -207,7 +209,7 @@ class Ds {
   async check_knownhosts(host) {
     let [addr, port = 22] = host.split(':');
 
-    console.log("Checking for known host", addr, host);
+    console.error("Checking for known host", addr, host);
     let knownhosts_file = path.join(os.homedir(), '.ssh', 'known_hosts');
     let body = "";
     if(fs.existsSync(knownhosts_file)) {
@@ -221,7 +223,7 @@ class Ds {
     let hostkey = await this.lookup_hostkeys(addr, port);
     body += hostkey;
     fs.writeFileSync(knownhosts_file, body);
-    console.log("Wrote %s hostkey in %s", addr, knownhosts_file);
+    console.error("Wrote %s hostkey in %s", addr, knownhosts_file);
   }
 
   async lookup_hostkeys(addr, port = 22) {
