@@ -188,7 +188,7 @@ class Ds {
     let exec_opts = {stdio : 'inherit'};
     console.error("Entering", ["docker", ...exec_args.map(formatArg)].join(' '));
     let child = spawn("docker", exec_args, exec_opts);
-    await wait(child).catch(Function.prototype);
+    return wait(child, false);
   }
 
   async scale(service_name, weight = 1) {

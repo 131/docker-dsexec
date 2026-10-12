@@ -13,11 +13,13 @@ const cmd = argv.shift();
 
 const failure = function(err) {
   console.error("Failure :", err);
-  process.exit();
+  process.exitCode = 1;
 };
 if(cmd == "exec") {
   const [service_name, ...shellargs]  = argv;
-  ds.exec(service_name, ...shellargs).catch(failure);
+  ds.exec(service_name, ...shellargs).then(code => {
+    process.exitCode = code === null ? 1 : code;
+  }).catch(failure);
 } else if(cmd == "scale") {
   const [service_name, ...shellargs]  = argv;
   ds.scale(service_name, ...shellargs).catch(failure);
