@@ -46,7 +46,10 @@ class Ds {
     console.error("Looking up for '%s' container", container_id);
     let tasks_list = await this.docker_sdk.tasks_list({state : 'running'});
     console.error("Found '%d' tasks", tasks_list.length);
+    tasks_list = tasks_list.filter(({Status}) => Status.State == "running" && Status.ContainerStatus?.ContainerID);
     tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
+    if(!tasks_list.length)
+      throw `No running container matches '${container_id}'`;
     return this._expose_task(tasks_list[0]);
   }
 
@@ -63,9 +66,13 @@ class Ds {
       console.error("Using first matching service", Name);
 
     let tasks_list = await this.docker_sdk.service_tasks(ID, 'running');
+    tasks_list = tasks_list.filter(({Status}) => Status.State == "running" && Status.ContainerStatus?.ContainerID);
 
     if(container_id)
       tasks_list = tasks_list.filter(({Status : {ContainerStatus : {ContainerID} }}) => ContainerID.startsWith(container_id));
+
+    if(!tasks_list.length)
+      throw `No matching running container in service '${Name}'`;
 
     let task = await this._expose_task(tasks_list[0]);
     return {ServiceName : Name, ...task};
