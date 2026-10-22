@@ -23,9 +23,6 @@ verification to your SSH client. Recommended `~/.ssh/config`:
 ```
 Host *
   StrictHostKeyChecking accept-new
-
-Host ds-*
-  CheckHostIP no
 ```
 
 Since the docker-socket service shares one host key across nodes, `accept-new`
