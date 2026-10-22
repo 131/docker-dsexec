@@ -15,6 +15,24 @@ dsexec [service_name] [shell=/bin/bash]
 # make sure you have a docker-socket service available and deployed to all nodes.
 ```
 
+# SSH host keys
+
+`ds` reaches each node through `DOCKER_HOST=ssh://ds-<NodeID>` and leaves host key
+verification to your SSH client. Recommended `~/.ssh/config`:
+
+```
+Host *
+  StrictHostKeyChecking accept-new
+
+Host ds-*
+  CheckHostIP no
+```
+
+Since the docker-socket service shares one host key across nodes, `accept-new`
+records each `ds-<NodeID>` once and verifies it afterwards. Earlier releases wrote
+`/etc/ssh/ssh_config.d/docker-socket.conf` (`StrictHostKeyChecking no`,
+`UserKnownHostsFile /dev/null`); remove that file, `ds` no longer manages it.
+
 
 
 # Credits

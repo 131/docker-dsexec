@@ -15,13 +15,6 @@ const formatArg = require('nyks/process/formatArg');
 
 
 
-const DS_SSH_CONFIG = `
-Host ds-*
-  CheckHostIP no
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
-`;
-
 const DS_ENV = new RegExp(process.env.DS_ENV || 'GIT_|USER_LOGIN');
 
 class Ds {
@@ -29,16 +22,6 @@ class Ds {
   constructor() {
     this.docker_sdk = new DockerSDK();
     this.shouldCheck_knownhosts = false;
-    this.shouldConfigureSSH_config = true;
-  }
-
-
-  async configure_SSH_config() {
-    const conf_file = "/etc/ssh/ssh_config.d/docker-socket.conf";
-    if(fs.existsSync(conf_file))
-      return;
-    console.error("Installing ds config in", conf_file);
-    fs.writeFileSync(conf_file, DS_SSH_CONFIG);
   }
 
 
@@ -93,9 +76,6 @@ class Ds {
 
 
   async _lookup_node(filter) {
-    if(this.shouldConfigureSSH_config)
-      await this.configure_SSH_config();
-
     const nodes =  await this.docker_sdk.nodes_list(filter);
     if(!nodes.length)
       throw `Unreachable node`;
